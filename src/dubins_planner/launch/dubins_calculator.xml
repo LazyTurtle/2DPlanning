@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="dubins_planner" exec="dubins_calculator_node" name="dubins_calculator_node"/>
+</launch>
