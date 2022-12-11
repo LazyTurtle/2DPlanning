@@ -1,0 +1,10 @@
+float32 x0
+float32 y0
+float32 th0
+float32 xf
+float32 yf
+float32 thf
+float32 Kmax
+---
+float32[] xi
+float32[] yi
