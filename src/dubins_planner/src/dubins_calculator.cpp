@@ -57,8 +57,8 @@ class DubinsCalculator : public rclcpp::Node
     std::vector<std::tuple<float, float>> points;
 
     void calculate(){
-      float x0 = 0.0, y0 = 0.0, th0 = PI*(-2.0/3.0);
-      float xf = 4.0, yf = 0.0, thf = PI/3.0;
+      float x0 = 0.0, y0 = 0.0, th0 = (1.0/6.0)*PI;
+      float xf = 4.0, yf = 0.0, thf = (7.0/6.0)*PI;
       float Kmax = 3.0;
 
       std::tie(curve_id, curve) = dubins_shortest_path(x0, y0, th0, xf, yf, thf, Kmax);

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(dubins_planner)
+project(dubins_planner_msgs)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -17,14 +17,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(dubins_planner_msgs REQUIRED)
-
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -36,26 +29,5 @@ if(BUILD_TESTING)
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-add_executable(draft_node src/draft_node.cpp)
-add_executable(publisher_node src/publisher.cpp)
-add_executable(dubins_calculator_node src/dubins_calculator.cpp)
-
-ament_target_dependencies(draft_node rclcpp std_msgs nav_msgs)
-ament_target_dependencies(publisher_node rclcpp std_msgs nav_msgs)
-ament_target_dependencies(dubins_calculator_node rclcpp std_msgs nav_msgs)
-
-
-install(TARGETS
-  draft_node
-  publisher_node
-  dubins_calculator_node
-  DESTINATION lib/${PROJECT_NAME})
-
-install(DIRECTORY
-launch
-DESTINATION share/${PROJECT_NAME}/
-)
-
 
 ament_package()
