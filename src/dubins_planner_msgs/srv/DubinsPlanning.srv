@@ -1,0 +1,5 @@
+dubins_planner_msgs/DubinsPoint start
+dubins_planner_msgs/DubinsPoint end
+float32 kmax
+---
+geometry_msgs/PoseArray path 
