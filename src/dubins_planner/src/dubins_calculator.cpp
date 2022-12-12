@@ -1,4 +1,5 @@
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <string>
 #include <cmath>
@@ -9,6 +10,7 @@
 #include "rclcpp/node.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "nav_msgs/msg/path.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "dubins_planner_msgs/srv/dubins_planning.hpp"
 
 #define PI 3.14159265
@@ -34,19 +36,25 @@ struct DubinsCurve{
 ////////////////////////////////////////
 ///// Node Classes
 
-class DubinsCalculator
+class DubinsCalculator : public rclcpp::Node
 {
   public:
-    DubinsCalculator(std::shared_ptr<rclcpp::Node> ros_handle){
+    DubinsCalculator():Node("server"){
       // rcutils_logging_set_logger_level(
       //   this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
-      handle = ros_handle;
-      //auto service = handle->create_service<dubins_planner_msgs::srv::DubinsPlanning>("dubins_calculator", std::bind(&DubinsCalculator::calculate, this));
+
+      service = this->create_service<dubins_planner_msgs::srv::DubinsPlanning>
+        ("dubins_calculator", 
+        std::bind(
+        &DubinsCalculator::calculate,
+        this,
+        std::placeholders::_1,
+        std::placeholders::_2));
     }
   
     void calculate(
       const std::shared_ptr<dubins_planner_msgs::srv::DubinsPlanning::Request> request,
-      std::shared_ptr<dubins_planner_msgs::srv::DubinsPlanning::Response> response){
+      const std::shared_ptr<dubins_planner_msgs::srv::DubinsPlanning::Response> response){
       
       
       float x0 = request->start.point.x;
@@ -69,20 +77,18 @@ class DubinsCalculator
     }
 
   private:
-    std::shared_ptr<rclcpp::Node> handle;
-
-    
+    std::shared_ptr<rclcpp::Service<dubins_planner_msgs::srv::DubinsPlanning>> service;
 
     nav_msgs::msg::Path convert_to_path(
       const std::vector<std::tuple<float, float>>& points){
       
       nav_msgs::msg::Path path;
-      path.header.stamp = handle->get_clock()->now();
+      path.header.stamp = this->get_clock()->now();
       path.header.frame_id = "map";
 
       for(auto point : points){
         geometry_msgs::msg::PoseStamped temp;
-        temp.header.stamp = handle->get_clock()->now();
+        temp.header.stamp = this->get_clock()->now();
         temp.header.frame_id = "";
         temp.pose.position.x = std::get<0>(point);
         temp.pose.position.y = std::get<1>(point);
@@ -411,7 +417,7 @@ class DubinsCalculator
       const float x0, const float y0, const float th0,
       const float xf, const float yf, const float thf, const float Kmax){
 
-        RCLCPP_INFO_STREAM(handle->get_logger(), "Start calculating the shortest path.");
+        RCLCPP_INFO_STREAM(this->get_logger(), "Start calculating the shortest path.");
 
         float sc_th0, sc_thf, sc_Kmax, lambda;
         std::tie(sc_th0, sc_thf, sc_Kmax, lambda) = scaleToStandard(x0, y0, th0, xf, yf, thf, Kmax);
@@ -464,10 +470,9 @@ int main(int argc, char * argv[])
 {
 
   rclcpp::init(argc, argv);
-  std::shared_ptr<rclcpp::Node> node=rclcpp::Node::make_shared("dubins_calculator_server");
-  DubinsCalculator calculator(node);
+  auto node=std::make_shared<DubinsCalculator>();
   rclcpp::spin(node);
   rclcpp::shutdown();
-  
+  exit(EXIT_SUCCESS);
   return 0;
 }

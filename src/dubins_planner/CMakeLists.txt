@@ -17,14 +17,10 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(dubins_planner_msgs REQUIRED)
-find_package(tutorial_interfaces REQUIRED)                         # CHANGE
 
 
 if(BUILD_TESTING)
@@ -38,17 +34,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(draft_node src/draft_node.cpp)
 add_executable(publisher_node src/publisher.cpp)
 add_executable(dubins_calculator_node src/dubins_calculator.cpp)
 
-ament_target_dependencies(draft_node rclcpp std_msgs nav_msgs tutorial_interfaces)
-ament_target_dependencies(publisher_node rclcpp std_msgs nav_msgs)
-ament_target_dependencies(dubins_calculator_node rclcpp std_msgs nav_msgs dubins_planner_msgs)
-
-
 install(TARGETS
-  draft_node
   publisher_node
   dubins_calculator_node
   DESTINATION lib/${PROJECT_NAME})
@@ -58,5 +47,7 @@ launch
 DESTINATION share/${PROJECT_NAME}/
 )
 
+ament_target_dependencies(publisher_node rclcpp std_msgs nav_msgs)
+ament_target_dependencies(dubins_calculator_node rclcpp std_msgs nav_msgs dubins_planner_msgs geometry_msgs)
 
 ament_package()

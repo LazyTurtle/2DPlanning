@@ -16,6 +16,7 @@
   <depend>std_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>dubins_planner_msgs</depend>
+  <depend>geometry_msgs</depend>
   
   <exec_depend>ros2launch</exec_depend>
   <depend>tutorial_interfaces</depend>
