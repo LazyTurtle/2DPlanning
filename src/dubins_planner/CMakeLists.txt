@@ -47,7 +47,7 @@ launch
 DESTINATION share/${PROJECT_NAME}/
 )
 
-ament_target_dependencies(publisher_node rclcpp std_msgs nav_msgs)
+ament_target_dependencies(publisher_node rclcpp std_msgs nav_msgs dubins_planner_msgs geometry_msgs)
 ament_target_dependencies(dubins_calculator_node rclcpp std_msgs nav_msgs dubins_planner_msgs geometry_msgs)
 
 ament_package()

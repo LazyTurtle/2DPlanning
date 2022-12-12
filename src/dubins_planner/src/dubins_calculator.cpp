@@ -417,7 +417,7 @@ class DubinsCalculator : public rclcpp::Node
       const float x0, const float y0, const float th0,
       const float xf, const float yf, const float thf, const float Kmax){
 
-        RCLCPP_INFO_STREAM(this->get_logger(), "Start calculating the shortest path.");
+        RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Calculating path...");
 
         float sc_th0, sc_thf, sc_Kmax, lambda;
         std::tie(sc_th0, sc_thf, sc_Kmax, lambda) = scaleToStandard(x0, y0, th0, xf, yf, thf, Kmax);
