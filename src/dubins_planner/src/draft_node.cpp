@@ -1,60 +1,33 @@
 #include <chrono>
-#include <functional>
 #include <memory>
-#include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
-#include "nav_msgs/msg/path.hpp"
+#include "tutorial_interfaces/msg/num.hpp"     // CHANGE
 
-/* This example creates a subclass of Node and uses std::bind() to register a
-* member function as a callback from the timer. */
 using namespace std::chrono_literals;
 
 class MinimalPublisher : public rclcpp::Node
 {
-  public:
-    MinimalPublisher()
-    : Node("minimal_publisher"), count_(0)
-    {
-      
-      publisher_ = this->create_publisher<nav_msgs::msg::Path>("plan", 10);
-      timer_ = this->create_wall_timer
-      (500ms, std::bind(&MinimalPublisher::timer_callback, this));
-    }
+public:
+  MinimalPublisher()
+  : Node("minimal_publisher"), count_(0)
+  {
+    publisher_ = this->create_publisher<tutorial_interfaces::msg::Num>("topic", 10);    // CHANGE
+    timer_ = this->create_wall_timer(
+      500ms, std::bind(&MinimalPublisher::timer_callback, this));
+  }
 
-  private:
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisher_;
-    size_t count_;
-    rclcpp::TimerBase::SharedPtr timer_;
-
-    void timer_callback()
-        {
-          nav_msgs::msg::Path path_msg;
-          path_msg.header.stamp = this->get_clock()->now();
-          path_msg.header.frame_id = "map";
-          geometry_msgs::msg::PoseStamped temp;
-          temp.header.stamp = this->get_clock()->now();
-          temp.header.frame_id = "";
-          temp.pose.position.x = 0;
-          temp.pose.position.y = 0;
-          temp.pose.position.z = 0 ;
-          temp.pose.orientation.x = 0;
-          temp.pose.orientation.y = 0;
-          temp.pose.orientation.z = 0;
-          temp.pose.orientation.w = 1;
-          path_msg.poses.push_back(temp);
-          temp.pose.position.x = 4;
-          temp.pose.position.y = 6;
-          temp.pose.position.z = 0 ;
-          temp.pose.orientation.x = 0;
-          temp.pose.orientation.y = 0;
-          temp.pose.orientation.z = 0;
-          temp.pose.orientation.w = 1;
-          path_msg.poses.push_back(temp);
-          publisher_->publish(path_msg);
-        }
-
+private:
+  void timer_callback()
+  {
+    auto message = tutorial_interfaces::msg::Num();                               // CHANGE
+    message.num = this->count_++;                                        // CHANGE
+    RCLCPP_INFO(this->get_logger(), "Publishing: '%d'", message.num);    // CHANGE
+    publisher_->publish(message);
+  }
+  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Publisher<tutorial_interfaces::msg::Num>::SharedPtr publisher_;         // CHANGE
+  size_t count_;
 };
 
 int main(int argc, char * argv[])
@@ -62,6 +35,5 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<MinimalPublisher>());
   rclcpp::shutdown();
-  
   return 0;
 }

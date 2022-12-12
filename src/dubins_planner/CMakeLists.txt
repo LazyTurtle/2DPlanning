@@ -24,6 +24,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(dubins_planner_msgs REQUIRED)
+find_package(tutorial_interfaces REQUIRED)                         # CHANGE
 
 
 if(BUILD_TESTING)
@@ -41,9 +42,9 @@ add_executable(draft_node src/draft_node.cpp)
 add_executable(publisher_node src/publisher.cpp)
 add_executable(dubins_calculator_node src/dubins_calculator.cpp)
 
-ament_target_dependencies(draft_node rclcpp std_msgs nav_msgs)
+ament_target_dependencies(draft_node rclcpp std_msgs nav_msgs tutorial_interfaces)
 ament_target_dependencies(publisher_node rclcpp std_msgs nav_msgs)
-ament_target_dependencies(dubins_calculator_node rclcpp std_msgs nav_msgs)
+ament_target_dependencies(dubins_calculator_node rclcpp std_msgs nav_msgs dubins_planner_msgs)
 
 
 install(TARGETS
