@@ -11,18 +11,20 @@ class MultiPointDubinsCalculator : public rclcpp::Node
     MultiPointDubinsCalculator()
     : Node("multi_point_dubins_calculator")
     {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Initializing multi point dubins calculator...");
+      log_info("Initializing...");
       init();
     }
 
     void init(){
 
       dubins_calculator = this->create_client<dubins_planner_msgs::srv::DubinsPlanning>("dubins_calculator");
+      log_info("Waiting for dubins calculator...");
+
       while (!dubins_calculator->wait_for_service(2s)) {
         if (!rclcpp::ok()) {
-          RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
+          log_err("Interrupted while waiting for the service. Exiting.");
         }
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Service not available, waiting again...");
+        log_info("Service not available, waiting again...");
       }
 
       RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Dubins calculator available.");
@@ -35,13 +37,13 @@ class MultiPointDubinsCalculator : public rclcpp::Node
         std::placeholders::_1,
         std::placeholders::_2));
 
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Multi point dubins calculator ready.");
+      log_info("Multi point dubins calculator ready.");
     }
 
     void calculate(
       const std::shared_ptr<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Request> request,
       const std::shared_ptr<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Response> response){
-        
+
 
     }
 
@@ -49,6 +51,20 @@ class MultiPointDubinsCalculator : public rclcpp::Node
   private:
     std::shared_ptr<rclcpp::Service<dubins_planner_msgs::srv::MultiPointDubinsPlanning>> service;
     std::shared_ptr<rclcpp::Client<dubins_planner_msgs::srv::DubinsPlanning>> dubins_calculator;
+
+
+
+    inline void log_info(const std::string log){
+      RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Multi point dubins calculator: "<<log);
+    }
+
+    inline void log_err(const std::string log){
+      RCLCPP_ERROR_STREAM(rclcpp::get_logger("rclcpp"), "Multi point dubins calculator: "<<log);
+    }
+
+    inline void log_warn(const std::string log){
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), "Multi point dubins calculator: "<<log);
+    }
 
 };
 

@@ -40,8 +40,6 @@ class DubinsCalculator : public rclcpp::Node
 {
   public:
     DubinsCalculator():Node("server"){
-      // rcutils_logging_set_logger_level(
-      //   this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
 
       service = this->create_service<dubins_planner_msgs::srv::DubinsPlanning>
         ("dubins_calculator", 
@@ -50,12 +48,15 @@ class DubinsCalculator : public rclcpp::Node
         this,
         std::placeholders::_1,
         std::placeholders::_2));
+        log_info("Ready.");
+
     }
   
     void calculate(
       const std::shared_ptr<dubins_planner_msgs::srv::DubinsPlanning::Request> request,
       const std::shared_ptr<dubins_planner_msgs::srv::DubinsPlanning::Response> response){
-      
+
+      log_info("Dubins calculator: request received... ");
       
       float x0 = request->start.point.x;
       float y0 = request->start.point.y;
@@ -417,7 +418,7 @@ class DubinsCalculator : public rclcpp::Node
       const float x0, const float y0, const float th0,
       const float xf, const float yf, const float thf, const float Kmax){
 
-        RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Calculating path...");
+        log_info("Calculating path...");
 
         float sc_th0, sc_thf, sc_Kmax, lambda;
         std::tie(sc_th0, sc_thf, sc_Kmax, lambda) = scaleToStandard(x0, y0, th0, xf, yf, thf, Kmax);
@@ -459,9 +460,23 @@ class DubinsCalculator : public rclcpp::Node
               sc_th0, sc_thf);
           
           assert(bCorrectDubins);
-            
+          log_info("Feasible curve found.");
+        }else{
+          log_warn("Feasible curve not found.");
         }
         return std::make_tuple(pidx, curve);
+    }
+
+    inline void log_info(const std::string log){
+      RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Dubins calculator: "<<log);
+    }
+
+    inline void log_err(const std::string log){
+      RCLCPP_ERROR_STREAM(rclcpp::get_logger("rclcpp"), "Dubins calculator: "<<log);
+    }
+
+    inline void log_warn(const std::string log){
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), "Dubins calculator: "<<log);
     }
     
 };
