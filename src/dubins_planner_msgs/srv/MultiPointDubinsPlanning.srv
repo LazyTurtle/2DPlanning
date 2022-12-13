@@ -1,4 +1,4 @@
-dubins_planner_msgs/DubinsPoint[] points
+geometry_msgs/Point[] points
 float64 kmax
 ---
 nav_msgs/Path path 
