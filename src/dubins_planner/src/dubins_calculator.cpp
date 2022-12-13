@@ -75,6 +75,7 @@ class DubinsCalculator : public rclcpp::Node
       std::vector<std::tuple<float, float>> points = getPlotPoints(curve);
 
       response->path = convert_to_path(points);
+      response->lenght = curve.L;
     }
 
   private:
