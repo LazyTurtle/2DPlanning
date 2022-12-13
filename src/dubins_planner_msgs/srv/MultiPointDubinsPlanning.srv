@@ -1,4 +1,5 @@
 geometry_msgs/Point[] points
 float64 kmax
+uint32 komega 8
 ---
 nav_msgs/Path path 
