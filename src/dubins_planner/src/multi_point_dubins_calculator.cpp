@@ -42,7 +42,23 @@ class MultiPointDubinsCalculator : public rclcpp::Node
       const std::shared_ptr<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Request> request,
       const std::shared_ptr<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Response> response){
 
+        std::vector<geometry_msgs::msg::Point> points = request->points;
+        int npoints=points.size();
+        int omega = request->komega;
 
+        std::vector<std::vector<int>> L(npoints , std::vector<int>(omega, std::numeric_limits<int>::max()));
+        for(int j=0; j < L[0].size(); j++){
+          L[L.size()-1][j] = 0;
+        }
+
+        float minLenght = std::numeric_limits<float>::max();
+        float minAngleAlpha, minAngleBeta;
+        
+        for(int i=0; i<omega; i++){
+          for(int j=0; j<omega; j++){
+            
+          }
+        }
     }
 
   
