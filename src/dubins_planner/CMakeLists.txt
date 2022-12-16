@@ -36,13 +36,11 @@ endif()
 
 add_executable(publisher_node src/publisher.cpp)
 add_executable(dubins_calculator_node src/dubins_calculator.cpp)
-add_executable(mp_dubins_calculator_node src/multi_point_dubins_calculator.cpp)
 
 
 install(TARGETS
   publisher_node
   dubins_calculator_node
-  mp_dubins_calculator_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
@@ -52,7 +50,6 @@ DESTINATION share/${PROJECT_NAME}/
 
 ament_target_dependencies(publisher_node rclcpp std_msgs nav_msgs dubins_planner_msgs geometry_msgs)
 ament_target_dependencies(dubins_calculator_node rclcpp std_msgs nav_msgs dubins_planner_msgs geometry_msgs)
-ament_target_dependencies(mp_dubins_calculator_node rclcpp std_msgs nav_msgs dubins_planner_msgs geometry_msgs)
 
 
 ament_package()

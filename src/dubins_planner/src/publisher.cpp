@@ -7,7 +7,8 @@
 #include "std_msgs/msg/string.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "dubins_planner_msgs/srv/dubins_planning.hpp"
+#include "geometry_msgs/msg/point.hpp"
+#include "dubins_planner_msgs/srv/multi_point_dubins_planning.hpp"
 
 
 /* This example creates a subclass of Node and uses std::bind() to register a
@@ -25,11 +26,22 @@ class MinimalPublisher : public rclcpp::Node
     }
 
     void init(){
-      auto client = this->create_client<dubins_planner_msgs::srv::DubinsPlanning>("dubins_calculator");
-      auto request = std::make_shared<dubins_planner_msgs::srv::DubinsPlanning::Request>();
-      request->end.point.x=4;
-      request->end.angle=-0.5;
+      auto client = this->create_client<dubins_planner_msgs::srv::MultiPointDubinsPlanning>("multi_points_dubins_calculator");
+      auto request = std::make_shared<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Request>();
+
+      geometry_msgs::msg::Point p1;
+      geometry_msgs::msg::Point p2;
+      p2.x = 2;
+      geometry_msgs::msg::Point p3;
+      p3.x = 3;
+      p3.y = 1;
+      geometry_msgs::msg::Point p4;
+      p4.x = 5;
+
+      request->points.insert(request->points.end(),{p1,p2,p3,p4});
       request->kmax = 3.0;
+
+
       while (!client->wait_for_service(2s)) {
         if (!rclcpp::ok()) {
           RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
