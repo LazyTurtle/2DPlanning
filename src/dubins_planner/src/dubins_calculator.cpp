@@ -25,12 +25,12 @@ struct DubinsArc{
   float 
     x0, y0, th0,
     xf, yf, thf,
-    k, L;
+    k, L = -1.0;
 } typedef DubinsArc;
 
 struct DubinsCurve{
   DubinsArc a1, a2, a3;
-  float L;
+  float L = -1.0;
 } typedef DubinsCurve;
 
 
@@ -83,15 +83,14 @@ class DubinsCalculator : public rclcpp::Node
       const std::shared_ptr<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Request> request,
       const std::shared_ptr<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Response> response){
 
-        std::vector<geometry_msgs::msg::Point> points = request->points;
-        int npoints = points.size();
+        std::vector<geometry_msgs::msg::Point> waypoint_list = request->points;
         float final_angle = request->angle;
         float Kmax = request->kmax;
         int omega = request->komega;
 
         DubinsCurve minCurve;
         minCurve.L = std::numeric_limits<float>::max();
-        std::vector<float>thetas(npoints);
+        std::vector<float>thetas(waypoint_list.size());
 
         std::vector<float>initial_angles;
         std::vector<float>final_angles;
@@ -113,11 +112,10 @@ class DubinsCalculator : public rclcpp::Node
         for(auto start_angle : initial_angles){
           for(auto end_angle : final_angles){
             DubinsCurve temp_curve;
-            int temp_curve_id;
-
+            int temp_curve_id, n_wp = waypoint_list.size();
             std::tie(temp_curve_id, temp_curve) = dubins_shortest_path(
-              points[points.size()-2].x, points[points.size()-2].y, start_angle,
-              points[points.size()-1].x, points[points.size()-1].y, end_angle,
+              waypoint_list[n_wp-2].x, waypoint_list[n_wp-2].y, start_angle,
+              waypoint_list[n_wp-1].x, waypoint_list[n_wp-1].y, end_angle,
               Kmax);
             
             if(temp_curve_id>-1 && temp_curve.L<minCurve.L){
@@ -127,7 +125,41 @@ class DubinsCalculator : public rclcpp::Node
             }
           }
         }
+
+        if(minCurve.L<0.0){
+          log_err("Can't find a path.");
+          return;
+        }
         
+        response->path = convert_to_path(minCurve);
+        response->lenght = minCurve.L;
+
+        for(int i = waypoint_list.size()-3; i>=0; i--){
+          DubinsCurve temp_min_curve;
+          temp_min_curve.L = std::numeric_limits<float>::max();
+
+          for(auto start_angle : initial_angles){
+            DubinsCurve temp_curve;
+            int temp_curve_id;
+
+            std::tie(temp_curve_id, temp_curve) = dubins_shortest_path(
+              waypoint_list[i].x, waypoint_list[i].y, start_angle,
+              waypoint_list[i+1].x, waypoint_list[i+1].y, thetas[i+1],
+              Kmax);
+            
+            if(temp_curve_id>-1 && temp_curve.L<temp_min_curve.L){
+              temp_min_curve = temp_curve;
+              thetas[i] = start_angle;
+            }
+          }
+
+          response->lenght += temp_min_curve.L;
+          nav_msgs::msg::Path temp_path = convert_to_path(temp_min_curve);
+          response->path.poses.insert(
+            response->path.poses.begin(), 
+            temp_path.poses.begin(), temp_path.poses.end());
+        }
+       log_info("Multi point dubins path calculation compleated.");
     }
 
   private:
