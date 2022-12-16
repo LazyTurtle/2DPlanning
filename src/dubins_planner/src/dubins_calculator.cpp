@@ -42,13 +42,18 @@ class DubinsCalculator : public rclcpp::Node
   public:
     DubinsCalculator():Node("server"){
 
-      service = this->create_service<dubins_planner_msgs::srv::DubinsPlanning>
+      dubins_service = this->create_service<dubins_planner_msgs::srv::DubinsPlanning>
         ("dubins_calculator", 
-        std::bind(
-        &DubinsCalculator::calculate_dubins,
-        this,
+        std::bind(&DubinsCalculator::calculate_dubins, this,
         std::placeholders::_1,
         std::placeholders::_2));
+
+      multi_point_dubins_service = this->create_service<dubins_planner_msgs::srv::MultiPointDubinsPlanning>
+        ("multi_points_dubins_calculator", 
+        std::bind(&DubinsCalculator::calculate_mp_dubins, this,
+        std::placeholders::_1,
+        std::placeholders::_2));
+
         log_info("Ready.");
 
     }
@@ -163,7 +168,8 @@ class DubinsCalculator : public rclcpp::Node
     }
 
   private:
-    std::shared_ptr<rclcpp::Service<dubins_planner_msgs::srv::DubinsPlanning>> service;
+    std::shared_ptr<rclcpp::Service<dubins_planner_msgs::srv::DubinsPlanning>> dubins_service;
+    std::shared_ptr<rclcpp::Service<dubins_planner_msgs::srv::MultiPointDubinsPlanning>> multi_point_dubins_service;
 
     nav_msgs::msg::Path convert_to_path(
       const DubinsCurve& curve, const int nPoints = 10){
