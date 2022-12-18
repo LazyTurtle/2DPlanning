@@ -30,6 +30,7 @@ endif()
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DubinsPoint.msg"
   "srv/DubinsPlanning.srv"
+  "srv/MultiPointDubinsPlanning.srv"
   DEPENDENCIES  
   geometry_msgs
   nav_msgs

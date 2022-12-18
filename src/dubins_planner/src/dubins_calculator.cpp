@@ -12,6 +12,7 @@
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "dubins_planner_msgs/srv/dubins_planning.hpp"
+#include "dubins_planner_msgs/srv/multi_point_dubins_planning.hpp"
 
 #define PI 3.14159265
 
@@ -24,12 +25,12 @@ struct DubinsArc{
   float 
     x0, y0, th0,
     xf, yf, thf,
-    k, L;
+    k, L = -1.0;
 } typedef DubinsArc;
 
 struct DubinsCurve{
   DubinsArc a1, a2, a3;
-  float L;
+  float L = -1.0;
 } typedef DubinsCurve;
 
 
@@ -40,22 +41,28 @@ class DubinsCalculator : public rclcpp::Node
 {
   public:
     DubinsCalculator():Node("server"){
-      // rcutils_logging_set_logger_level(
-      //   this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
 
-      service = this->create_service<dubins_planner_msgs::srv::DubinsPlanning>
+      dubins_service = this->create_service<dubins_planner_msgs::srv::DubinsPlanning>
         ("dubins_calculator", 
-        std::bind(
-        &DubinsCalculator::calculate,
-        this,
+        std::bind(&DubinsCalculator::calculate_dubins, this,
         std::placeholders::_1,
         std::placeholders::_2));
+
+      multi_point_dubins_service = this->create_service<dubins_planner_msgs::srv::MultiPointDubinsPlanning>
+        ("multi_points_dubins_calculator", 
+        std::bind(&DubinsCalculator::calculate_mp_dubins, this,
+        std::placeholders::_1,
+        std::placeholders::_2));
+
+        log_info("Ready.");
+
     }
   
-    void calculate(
+    void calculate_dubins(
       const std::shared_ptr<dubins_planner_msgs::srv::DubinsPlanning::Request> request,
       const std::shared_ptr<dubins_planner_msgs::srv::DubinsPlanning::Response> response){
-      
+
+      log_info("Dubins calculator: request received... ");
       
       float x0 = request->start.point.x;
       float y0 = request->start.point.y;
@@ -74,10 +81,106 @@ class DubinsCalculator : public rclcpp::Node
       std::vector<std::tuple<float, float>> points = getPlotPoints(curve);
 
       response->path = convert_to_path(points);
+      response->lenght = curve.L;
+    }
+
+  void calculate_mp_dubins(
+      const std::shared_ptr<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Request> request,
+      const std::shared_ptr<dubins_planner_msgs::srv::MultiPointDubinsPlanning::Response> response){
+
+        std::vector<geometry_msgs::msg::Point> waypoint_list = request->points;
+        float final_angle = request->angle;
+        float Kmax = request->kmax;
+        int omega = request->komega;
+
+        DubinsCurve minCurve;
+        minCurve.L = std::numeric_limits<float>::max();
+        std::vector<float>thetas(waypoint_list.size());
+
+        std::vector<float>initial_angles;
+        std::vector<float>final_angles;
+
+        for(int i=0;i<omega;i++){
+          float angle = ((2*PI)/omega)*i;
+          initial_angles.push_back(angle);
+        }
+
+        if(final_angle<0.0){
+          // the negative value indicates no preference
+          // the angle is in [0,2π]
+          for(int i=0;i<omega;i++){
+            float angle = ((2*PI)/omega)*i;
+            final_angles.push_back(angle);
+          }
+        }else{
+          final_angles.push_back(final_angle);
+        }
+
+        for(auto start_angle : initial_angles){
+          for(auto end_angle : final_angles){
+            DubinsCurve temp_curve;
+            int temp_curve_id, n_wp = waypoint_list.size();
+            std::tie(temp_curve_id, temp_curve) = dubins_shortest_path(
+              waypoint_list[n_wp-2].x, waypoint_list[n_wp-2].y, start_angle,
+              waypoint_list[n_wp-1].x, waypoint_list[n_wp-1].y, end_angle,
+              Kmax);
+            
+            if(temp_curve_id>-1 && temp_curve.L<minCurve.L){
+              minCurve = temp_curve;
+              thetas.end()[-1]=end_angle;
+              thetas.end()[-2]=start_angle;
+            }
+          }
+        }
+
+        if(minCurve.L<0.0){
+          log_err("Can't find a path.");
+          return;
+        }
+        
+        response->path = convert_to_path(minCurve);
+        response->lenght = minCurve.L;
+
+        for(int i = waypoint_list.size()-3; i>=0; i--){
+          DubinsCurve temp_min_curve;
+          temp_min_curve.L = std::numeric_limits<float>::max();
+
+          for(auto start_angle : initial_angles){
+            DubinsCurve temp_curve;
+            int temp_curve_id;
+
+            std::tie(temp_curve_id, temp_curve) = dubins_shortest_path(
+              waypoint_list[i].x, waypoint_list[i].y, start_angle,
+              waypoint_list[i+1].x, waypoint_list[i+1].y, thetas[i+1],
+              Kmax);
+            
+            if(temp_curve_id>-1 && temp_curve.L<temp_min_curve.L){
+              temp_min_curve = temp_curve;
+              thetas[i] = start_angle;
+            }
+          }
+
+          response->lenght += temp_min_curve.L;
+          nav_msgs::msg::Path temp_path = convert_to_path(temp_min_curve);
+          response->path.poses.insert(
+            response->path.poses.begin(), 
+            temp_path.poses.begin(), temp_path.poses.end());
+        }
+        std::stringstream s;
+        s << "Multi point dubins path calculation compleated.\n";
+        s << "Poses: "<<response->path.poses.size()<<"\n";
+        s << "Lenght: "<<response->lenght<<"\n";
+        log_info(s.str());
     }
 
   private:
-    std::shared_ptr<rclcpp::Service<dubins_planner_msgs::srv::DubinsPlanning>> service;
+    std::shared_ptr<rclcpp::Service<dubins_planner_msgs::srv::DubinsPlanning>> dubins_service;
+    std::shared_ptr<rclcpp::Service<dubins_planner_msgs::srv::MultiPointDubinsPlanning>> multi_point_dubins_service;
+
+    nav_msgs::msg::Path convert_to_path(
+      const DubinsCurve& curve, const int nPoints = 10){
+        return convert_to_path(getPlotPoints(curve, nPoints));
+    }
 
     nav_msgs::msg::Path convert_to_path(
       const std::vector<std::tuple<float, float>>& points){
@@ -124,8 +227,8 @@ class DubinsCalculator : public rclcpp::Node
     }
 
     // Normalize an angle in range [-pi,pi)
-    static float rangeSymm(const float angle){
-      float moduled_angle = angle;
+    static double rangeSymm(const double angle){
+      double moduled_angle = angle;
       while(moduled_angle<-PI){
         moduled_angle += 2*PI;
       }
@@ -136,32 +239,32 @@ class DubinsCalculator : public rclcpp::Node
     }
 
     static bool check_dubins(
-      const float s1, const float k0,
-      const float s2, const float k1,
-      const float s3, const float k2,
-      const float th0,const float thf){
+      const double s1, const double k0,
+      const double s2, const double k1,
+      const double s3, const double k2,
+      const double th0,const double thf){
 
-        const float x0 = -1.0;
-        const float y0 = 0.0;
-        const float xf = 1.0;
-        const float yf = 0.0;
+        const double x0 = -1.0;
+        const double y0 = 0.0;
+        const double xf = 1.0;
+        const double yf = 0.0;
 
-        const float eq1 = 
+        const double eq1 = 
           x0 + 
           s1 * sinc((1./2.) * k0 * s1) * cos(th0 + (1./2.) * k0 * s1) + 
           s2 * sinc((1./2.) * k1 * s2) * cos(th0 + k0 * s1 + (1./2.) * k1 * s2) +
           s3 * sinc((1./2.) * k2 * s3) * cos(th0 + k0 * s1 + k1 * s2 + (1./2.) * k2 * s3) - xf;
 
-        const float eq2 = 
+        const double eq2 = 
           y0 + 
           s1 * sinc((1/2.) * k0 * s1) * sin(th0 + (1/2.) * k0 * s1) + 
           s2 * sinc((1/2.) * k1 * s2) * sin(th0 + k0 * s1 + (1/2.) * k1 * s2) + 
           s3 * sinc((1/2.) * k2 * s3) * sin(th0 + k0 * s1 + k1 * s2 + (1/2.) * k2 * s3) - yf;
 
-        const float eq3 = rangeSymm(k0 * s1 + k1 * s2 + k2 * s3 + th0 - thf);
+        const double eq3 = rangeSymm(k0 * s1 + k1 * s2 + k2 * s3 + th0 - thf);
 
         const bool Lpos = (s1 > 0) || (s2 > 0) || (s3 > 0);
-        const float epsilon = sqrt(eq1*eq1+eq2*eq2+eq3*eq3);
+        const double epsilon = sqrt(eq1*eq1+eq2*eq2+eq3*eq3);
         const bool result = (epsilon < 1.e-6) && Lpos;
         return result;
       }
@@ -241,7 +344,7 @@ class DubinsCalculator : public rclcpp::Node
     }
 
     std::vector<std::tuple<float,float>> getPlotPoints(
-      const DubinsCurve curve, const int nPoints=10){
+      const DubinsCurve& curve, const int nPoints=10){
 
         std::vector<std::tuple<float,float>> points;
         auto arc1Points = getPlotPoints(curve.a1, nPoints);
@@ -417,7 +520,7 @@ class DubinsCalculator : public rclcpp::Node
       const float x0, const float y0, const float th0,
       const float xf, const float yf, const float thf, const float Kmax){
 
-        RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Calculating path...");
+        log_info("Calculating path...");
 
         float sc_th0, sc_thf, sc_Kmax, lambda;
         std::tie(sc_th0, sc_thf, sc_Kmax, lambda) = scaleToStandard(x0, y0, th0, xf, yf, thf, Kmax);
@@ -459,9 +562,23 @@ class DubinsCalculator : public rclcpp::Node
               sc_th0, sc_thf);
           
           assert(bCorrectDubins);
-            
+          log_info("Feasible curve found.");
+        }else{
+          log_warn("Feasible curve not found.");
         }
         return std::make_tuple(pidx, curve);
+    }
+
+    inline void log_info(const std::string log){
+      RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"),"Dubins calculator: "<<log);
+    }
+
+    inline void log_err(const std::string log){
+      RCLCPP_ERROR_STREAM(rclcpp::get_logger("rclcpp"),"Dubins calculator: "<<log);
+    }
+
+    inline void log_warn(const std::string log){
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"),"Dubins calculator: "<<log);
     }
     
 };
