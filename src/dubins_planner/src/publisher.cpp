@@ -31,15 +31,26 @@ class MinimalPublisher : public rclcpp::Node
 
       geometry_msgs::msg::Point p1;
       geometry_msgs::msg::Point p2;
-      p2.x = 2;
+      p2.x = 1;
+      p2.y = -2;
       geometry_msgs::msg::Point p3;
-      p3.x = 3;
-      p3.y = 1;
+      p3.x = 1;
+      p3.y = 2;
       geometry_msgs::msg::Point p4;
-      p4.x = 5;
+      p4.x = 1.5;
+      geometry_msgs::msg::Point p5;
+      p5.x = 2.3;
+      p5.y = 1;
+      geometry_msgs::msg::Point p6;
+      p6.x = 4;
+      p6.y = -1;
+      geometry_msgs::msg::Point p7;
+      p7.x = 6;
+      p7.y = 3;
 
-      request->points.insert(request->points.end(),{p1,p2,p3,p4});
-      request->kmax = 3.0;
+      request->points.insert(request->points.end(),{p1,p2,p3,p4,p5,p6,p7});
+      request->kmax = 3;
+      request->angle = 1.5*3.141592;
 
 
       while (!client->wait_for_service(2s)) {

@@ -106,6 +106,8 @@ class DubinsCalculator : public rclcpp::Node
         }
 
         if(final_angle<0.0){
+          // the negative value indicates no preference
+          // the angle is in [0,2π]
           for(int i=0;i<omega;i++){
             float angle = ((2*PI)/omega)*i;
             final_angles.push_back(angle);
@@ -164,7 +166,11 @@ class DubinsCalculator : public rclcpp::Node
             response->path.poses.begin(), 
             temp_path.poses.begin(), temp_path.poses.end());
         }
-       log_info("Multi point dubins path calculation compleated.");
+        std::stringstream s;
+        s << "Multi point dubins path calculation compleated.\n";
+        s << "Poses: "<<response->path.poses.size()<<"\n";
+        s << "Lenght: "<<response->lenght<<"\n";
+        log_info(s.str());
     }
 
   private:
@@ -221,8 +227,8 @@ class DubinsCalculator : public rclcpp::Node
     }
 
     // Normalize an angle in range [-pi,pi)
-    static float rangeSymm(const float angle){
-      float moduled_angle = angle;
+    static double rangeSymm(const double angle){
+      double moduled_angle = angle;
       while(moduled_angle<-PI){
         moduled_angle += 2*PI;
       }
@@ -233,32 +239,32 @@ class DubinsCalculator : public rclcpp::Node
     }
 
     static bool check_dubins(
-      const float s1, const float k0,
-      const float s2, const float k1,
-      const float s3, const float k2,
-      const float th0,const float thf){
+      const double s1, const double k0,
+      const double s2, const double k1,
+      const double s3, const double k2,
+      const double th0,const double thf){
 
-        const float x0 = -1.0;
-        const float y0 = 0.0;
-        const float xf = 1.0;
-        const float yf = 0.0;
+        const double x0 = -1.0;
+        const double y0 = 0.0;
+        const double xf = 1.0;
+        const double yf = 0.0;
 
-        const float eq1 = 
+        const double eq1 = 
           x0 + 
           s1 * sinc((1./2.) * k0 * s1) * cos(th0 + (1./2.) * k0 * s1) + 
           s2 * sinc((1./2.) * k1 * s2) * cos(th0 + k0 * s1 + (1./2.) * k1 * s2) +
           s3 * sinc((1./2.) * k2 * s3) * cos(th0 + k0 * s1 + k1 * s2 + (1./2.) * k2 * s3) - xf;
 
-        const float eq2 = 
+        const double eq2 = 
           y0 + 
           s1 * sinc((1/2.) * k0 * s1) * sin(th0 + (1/2.) * k0 * s1) + 
           s2 * sinc((1/2.) * k1 * s2) * sin(th0 + k0 * s1 + (1/2.) * k1 * s2) + 
           s3 * sinc((1/2.) * k2 * s3) * sin(th0 + k0 * s1 + k1 * s2 + (1/2.) * k2 * s3) - yf;
 
-        const float eq3 = rangeSymm(k0 * s1 + k1 * s2 + k2 * s3 + th0 - thf);
+        const double eq3 = rangeSymm(k0 * s1 + k1 * s2 + k2 * s3 + th0 - thf);
 
         const bool Lpos = (s1 > 0) || (s2 > 0) || (s3 > 0);
-        const float epsilon = sqrt(eq1*eq1+eq2*eq2+eq3*eq3);
+        const double epsilon = sqrt(eq1*eq1+eq2*eq2+eq3*eq3);
         const bool result = (epsilon < 1.e-6) && Lpos;
         return result;
       }
@@ -564,15 +570,15 @@ class DubinsCalculator : public rclcpp::Node
     }
 
     inline void log_info(const std::string log){
-      RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Dubins calculator: "<<log);
+      RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"),"Dubins calculator: "<<log);
     }
 
     inline void log_err(const std::string log){
-      RCLCPP_ERROR_STREAM(rclcpp::get_logger("rclcpp"), "Dubins calculator: "<<log);
+      RCLCPP_ERROR_STREAM(rclcpp::get_logger("rclcpp"),"Dubins calculator: "<<log);
     }
 
     inline void log_warn(const std::string log){
-      RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), "Dubins calculator: "<<log);
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"),"Dubins calculator: "<<log);
     }
     
 };
