@@ -19,7 +19,6 @@
   <depend>geometry_msgs</depend>
   
   <exec_depend>ros2launch</exec_depend>
-  <depend>tutorial_interfaces</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
